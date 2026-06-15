@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sliders, RotateCw, Database, MapPin, Grid, BarChart } from 'lucide-react';
+import { Sliders, RotateCw, Database, MapPin } from 'lucide-react';
 
 interface CardData {
   id: string;

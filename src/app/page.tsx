@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import MobileContainer from '@/components/MobileContainer';
 import FlashCard from '@/components/FlashCard';
-import { Database, HelpCircle, GraduationCap, Network, Map, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
+import { GraduationCap, Network, Map, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function Home() {
   const [showFaq, setShowFaq] = useState<boolean>(false);
@@ -118,7 +118,7 @@ export default function Home() {
                   </h4>
                   <p className="text-[11px] text-slate-400 pl-2.5">
                     도시 공간 정보 데이터(공시지가, 인구밀도 등)의 지리적 상호 의존성을 분석하기 위해 
-                    <strong>공간 가중치 행렬(W)</strong>을 선언합니다. 이 행렬과 관측치 벡터를 행렬 곱 연산하여 공간 시차(Spatial Lag)를 형성하고 Moran's I 통계량을 도출하여 핫스팟 지역을 시각화합니다.
+                    <strong>공간 가중치 행렬(W)</strong>을 선언합니다. 이 행렬과 관측치 벡터를 행렬 곱 연산하여 공간 시차(Spatial Lag)를 형성하고 Moran&apos;s I 통계량을 도출하여 핫스팟 지역을 시각화합니다.
                   </p>
                 </div>
 
