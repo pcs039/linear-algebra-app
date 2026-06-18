@@ -1,12 +1,65 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MobileContainer from '@/components/MobileContainer';
 import FlashCard from '@/components/FlashCard';
 import { GraduationCap, Network, Map, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function Home() {
   const [showFaq, setShowFaq] = useState<boolean>(false);
+  const [comprehension, setComprehension] = useState<number>(0);
+  const [dbSource, setDbSource] = useState<string>('로컬캐시');
+  const [attemptsCount, setAttemptsCount] = useState<number>(0);
+
+  const refreshStats = async () => {
+    let attempts = [];
+    let isSupabase = true;
+
+    try {
+      const { data, error } = await supabase
+        .from('quiz_attempts')
+        .select('concept_name, is_correct')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      attempts = data || [];
+    } catch (err) {
+      console.warn('Failed to fetch from Supabase, loading from LocalStorage:', err);
+      isSupabase = false;
+      try {
+        attempts = JSON.parse(localStorage.getItem('quiz_attempts') || '[]');
+      } catch (localErr) {
+        console.error('Failed to parse quiz_attempts from LocalStorage:', localErr);
+      }
+    }
+
+    interface QuizAttempt {
+      concept_name: string;
+      is_correct: boolean;
+    }
+
+    const solvedConcepts = new Set<string>();
+    attempts.forEach((attempt: QuizAttempt) => {
+      if (attempt.is_correct) {
+        solvedConcepts.add(attempt.concept_name);
+      }
+    });
+
+    const totalConcepts = 5;
+    const scorePercentage = Math.round((solvedConcepts.size / totalConcepts) * 100);
+
+    setComprehension(scorePercentage);
+    setDbSource(isSupabase ? '수파베이스' : '로컬캐시');
+    setAttemptsCount(attempts.length);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      refreshStats();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <MobileContainer>
@@ -45,21 +98,21 @@ export default function Home() {
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-slate-950/60 border border-slate-900 p-2.5 rounded-xl text-center">
                 <p className="text-[10px] text-slate-500">개념 이해도</p>
-                <p className="text-lg font-black text-indigo-400 mt-0.5">100%</p>
+                <p className="text-lg font-black text-indigo-400 mt-0.5">{comprehension}%</p>
               </div>
               <div className="bg-slate-950/60 border border-slate-900 p-2.5 rounded-xl text-center">
                 <p className="text-[10px] text-slate-500">탐구 도구</p>
-                <p className="text-lg font-black text-violet-400 mt-0.5">3개</p>
+                <p className="text-lg font-black text-violet-400 mt-0.5">5개</p>
               </div>
               <div className="bg-slate-950/60 border border-slate-900 p-2.5 rounded-xl text-center">
                 <p className="text-[10px] text-slate-500">연동 데이터</p>
-                <p className="text-lg font-black text-emerald-400 mt-0.5">공간DB</p>
+                <p className="text-lg font-black text-emerald-400 mt-0.5">{dbSource}</p>
               </div>
             </div>
 
             <div className="mt-3 bg-slate-950/30 rounded-lg p-2 flex items-center justify-between text-[10px] border border-slate-900">
-              <span className="text-slate-400 font-medium">실시간 공간정보 분석 연구 준비 완료</span>
-              <span className="text-emerald-400 font-bold">● Active</span>
+              <span className="text-slate-400 font-medium">실시간 데이터 연동 (퀴즈 제출: {attemptsCount}회)</span>
+              <span className="text-emerald-400 font-bold">● Live</span>
             </div>
           </div>
         </section>
@@ -77,7 +130,7 @@ export default function Home() {
 
         {/* Flashcard Component */}
         <section className="flex-1 flex flex-col justify-center">
-          <FlashCard />
+          <FlashCard onQuizSubmit={refreshStats} />
         </section>
 
         {/* Why Linear Algebra in Urban Big Data section */}

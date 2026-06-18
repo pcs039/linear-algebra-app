@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sliders, RotateCw, Database, MapPin } from 'lucide-react';
+import { Sliders, RotateCw, Database, MapPin, CheckCircle2, XCircle, HelpCircle, RefreshCw } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface CardData {
   id: string;
@@ -73,7 +74,11 @@ const CARDS: CardData[] = [
   }
 ];
 
-export default function FlashCard() {
+interface FlashCardProps {
+  onQuizSubmit?: () => void;
+}
+
+export default function FlashCard({ onQuizSubmit }: FlashCardProps = {}) {
   const [activeCard, setActiveCard] = useState<string>('scalar');
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
@@ -141,11 +146,11 @@ export default function FlashCard() {
           const isFlipped = !!flippedCards[card.id];
 
           return (
-            <div
-              key={card.id}
-              className="w-full max-w-[340px] h-[440px] perspective-1000 group cursor-pointer"
-              onClick={() => handleFlip(card.id)}
-            >
+            <div key={card.id} className="w-full flex flex-col items-center">
+              <div
+                className="w-full max-w-[340px] h-[440px] perspective-1000 group cursor-pointer"
+                onClick={() => handleFlip(card.id)}
+              >
               {/* Card Container */}
               <div
                 className={`w-full h-full duration-700 transform-style-3d relative rounded-3xl border transition-all ${
@@ -688,6 +693,7 @@ export default function FlashCard() {
                       </div>
                     )}
                   </div>
+                </div>
 
                   <div className="flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900 pt-3 z-10">
                     <span className="flex items-center gap-1">
@@ -748,13 +754,260 @@ export default function FlashCard() {
                   {/* Tap to return helper */}
                   <div className="text-center text-[10px] text-slate-500 pt-3 border-t border-slate-900 mt-3">
                     화면 아무 곳이나 누르면 앞으로 돌아갑니다
-                  </div>
                 </div>
               </div>
             </div>
+            <QuizSection key={card.id} conceptId={card.id} onSubmitted={onQuizSubmit} />
+          </div>
+        );
+      })}
+    </div>
+  </div>
+);
+}
+
+// ==================== 퀴즈 시스템 데이터 및 컴포넌트 ====================
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  answerIndex: number;
+  explanation: string;
+}
+
+const QUIZ_QUESTIONS: Record<string, QuizQuestion> = {
+  scalar: {
+    question: "선형대수학에서 스칼라(Scalar)의 설명으로 가장 올바르지 않은 것은 무엇인가요?",
+    options: [
+      "오직 크기만 가지며 방향은 없다.",
+      "벡터에 곱해져서 길이를 배율 조정(Scaling)할 수 있다.",
+      "대표적인 예시로 도시 센서의 온도, 기압 수치가 있다.",
+      "2차원 평면에서의 특정 이동 경로의 방향을 나타낸다."
+    ],
+    answerIndex: 3,
+    explanation: "스칼라는 방향 없이 크기만 가지는 단일 수치입니다. 특정 이동 경로의 방향을 갖는 물리량은 벡터(Vector)입니다."
+  },
+  vector: {
+    question: "2차원 벡터 v = [3, 4]ᵀ의 길이는 얼마인가요?",
+    options: ["5", "7", "12", "25"],
+    answerIndex: 0,
+    explanation: "벡터의 길이(L2 Norm)는 각 성분의 제곱합의 제곱근입니다. 즉, √(3² + 4²) = √(9 + 16) = √25 = 5입니다."
+  },
+  matrix: {
+    question: "선형 변환으로서의 행렬 A = [[0, -1], [1, 0]]가 벡터에 가해질 때 기하학적으로 어떻게 변형되나요?",
+    options: [
+      "원점을 기준으로 반시계 방향으로 90도 회전한다.",
+      "x축 방향으로 2배 확대된다.",
+      "y축을 기준으로 대칭 이동한다.",
+      "원점을 기준으로 시계 방향으로 90도 회전한다."
+    ],
+    answerIndex: 0,
+    explanation: "이 행렬에 기저 벡터 [1, 0]ᵀ을 곱하면 [0, 1]ᵀ이 되고, [0, 1]ᵀ을 곱하면 [-1, 0]ᵀ이 됩니다. 이는 원점 기준 반시계 방향 90도 회전 변환을 의미합니다."
+  },
+  matrix_mult: {
+    question: "행렬 A = [[2, 1], [0, 3]]와 B = [[1, 2], [3, 4]]의 곱 C = AB의 1행 1열 원소 c_11의 값은 무엇인가요?",
+    options: ["2", "5", "8", "10"],
+    answerIndex: 1,
+    explanation: "c_11은 A의 1행 [2, 1]과 B의 1열 [1, 3]ᵀ의 내적입니다. 따라서 (2 × 1) + (1 × 3) = 2 + 3 = 5가 됩니다."
+  },
+  eigen: {
+    question: "식 Av = λv가 성립할 때, 고유벡터 v와 고유값 λ의 기하학적 성질로 옳은 것은 무엇인가요?",
+    options: [
+      "변환 후에도 벡터의 방향이 동일 선상(y=x)에 유지되며 길이는 λ배가 된다.",
+      "변환을 거치면 무조건 벡터의 길이가 0이 된다.",
+      "변환 후 항상 x축과 평행하게 회전한다.",
+      "변환 행렬 A의 모든 원소의 합과 크기가 항상 같다."
+    ],
+    answerIndex: 0,
+    explanation: "고유벡터는 선형 변환 A를 가해도 방향은 변하지 않고(동일 선상에 유지), 오직 크기만 고유값 λ배만큼 스케일링되는 특별한 벡터입니다."
+  }
+};
+
+const submitQuizAttempt = async (conceptId: string, isCorrect: boolean) => {
+  const score = isCorrect ? 100 : 0;
+  
+  try {
+    const { data, error } = await supabase
+      .from('quiz_attempts')
+      .insert([
+        { concept_name: conceptId, score, is_correct: isCorrect }
+      ]);
+      
+    if (error) {
+      throw error;
+    }
+    
+    console.log('Quiz attempt successfully saved to Supabase:', data);
+    return { success: true, source: 'supabase' };
+  } catch (err) {
+    console.warn('Supabase insert failed, falling back to LocalStorage:', err);
+    
+    try {
+      const localAttempts = JSON.parse(localStorage.getItem('quiz_attempts') || '[]');
+      const newAttempt = {
+        id: Math.random().toString(36).substring(2, 9),
+        concept_name: conceptId,
+        score,
+        is_correct: isCorrect,
+        created_at: new Date().toISOString()
+      };
+      localAttempts.push(newAttempt);
+      localStorage.setItem('quiz_attempts', JSON.stringify(localAttempts));
+      return { success: true, source: 'local' };
+    } catch (localErr) {
+      console.error('LocalStorage write failed:', localErr);
+      return { success: false, error: localErr };
+    }
+  }
+};
+
+interface QuizSectionProps {
+  conceptId: string;
+  onSubmitted?: () => void;
+}
+
+function QuizSection({ conceptId, onSubmitted }: QuizSectionProps) {
+  const questionData = QUIZ_QUESTIONS[conceptId];
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState<boolean>(false);
+  const [isCorrect, setIsCorrect] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [dbSource, setDbSource] = useState<string>('');
+
+  
+  if (!questionData) return null;
+  
+  const handleSelect = (idx: number) => {
+    if (submitted) return;
+    setSelectedOption(idx);
+  };
+  
+  const handleSubmit = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (selectedOption === null || submitted || loading) return;
+    
+    setLoading(true);
+    const correct = selectedOption === questionData.answerIndex;
+    setIsCorrect(correct);
+    
+    const res = await submitQuizAttempt(conceptId, correct);
+    if (res.success) {
+      setDbSource(res.source === 'supabase' ? 'Supabase DB' : '로컬 캐시');
+    }
+    
+    setSubmitted(true);
+    setLoading(false);
+    
+    if (onSubmitted) {
+      onSubmitted();
+    }
+  };
+  
+  const handleRetry = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedOption(null);
+    setSubmitted(false);
+    setIsCorrect(false);
+  };
+  
+  return (
+    <div 
+      className="w-full max-w-[340px] bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 shadow-xl mt-6 relative overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="absolute -right-10 -top-10 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
+      
+      <div className="flex items-center gap-1.5 border-b border-slate-900 pb-2 mb-3">
+        <HelpCircle className="w-4 h-4 text-indigo-400" />
+        <h4 className="text-xs font-bold text-slate-200">5분 개념 체크 퀴즈</h4>
+        {submitted && (
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-auto ${
+            isCorrect 
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+          }`}>
+            {isCorrect ? 'Correct' : 'Incorrect'}
+          </span>
+        )}
+      </div>
+      
+      <p className="text-xs text-slate-300 font-semibold leading-relaxed mb-3">
+        {questionData.question}
+      </p>
+      
+      <div className="space-y-2 mb-3">
+        {questionData.options.map((opt, idx) => {
+          let optStyle = "bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200";
+          
+          if (selectedOption === idx) {
+            optStyle = "bg-indigo-600/15 border-indigo-500/50 text-indigo-300 font-semibold";
+          }
+          
+          if (submitted) {
+            if (idx === questionData.answerIndex) {
+              optStyle = "bg-emerald-500/15 border-emerald-500/50 text-emerald-300 font-semibold";
+            } else if (selectedOption === idx) {
+              optStyle = "bg-rose-500/15 border-rose-500/50 text-rose-300 font-semibold";
+            } else {
+              optStyle = "bg-slate-900/20 border-slate-900 text-slate-500 cursor-not-allowed";
+            }
+          }
+          
+          return (
+            <button
+              key={idx}
+              disabled={submitted}
+              onClick={() => handleSelect(idx)}
+              className={`w-full text-left px-3 py-2 text-[11px] rounded-xl border transition-all duration-205 flex items-start gap-2 ${optStyle}`}
+            >
+              <span className="font-mono text-slate-500">{idx + 1}.</span>
+              <span>{opt}</span>
+            </button>
           );
         })}
       </div>
+      
+      {submitted ? (
+        <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-3 text-[10.5px] leading-relaxed">
+          <div className="flex items-center gap-1.5 font-bold mb-1">
+            {isCorrect ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <XCircle className="w-3.5 h-3.5 text-rose-400" />
+            )}
+            <span className={isCorrect ? 'text-emerald-400' : 'text-rose-400'}>
+              {isCorrect ? '정답입니다! 훌륭해요.' : '오답입니다. 개념을 다시 확인해 보세요.'}
+            </span>
+          </div>
+          <p className="text-slate-400 mt-1 pl-5">
+            {questionData.explanation}
+          </p>
+          <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-900 text-[9px] text-slate-500">
+            <span>동기화: {dbSource}</span>
+            {!isCorrect && (
+              <button 
+                onClick={handleRetry}
+                className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-bold"
+              >
+                <RefreshCw className="w-3 h-3" />
+                다시 풀기
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={handleSubmit}
+          disabled={selectedOption === null || loading}
+          className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+            selectedOption === null || loading
+              ? 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed'
+              : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-950/40'
+          }`}
+        >
+          {loading ? '제출 중...' : '정답 제출하기'}
+        </button>
+      )}
     </div>
   );
 }
