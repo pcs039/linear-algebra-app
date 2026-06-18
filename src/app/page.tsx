@@ -46,7 +46,7 @@ export default function Home() {
       }
     });
 
-    const totalConcepts = 5;
+    const totalConcepts = 7;
     const scorePercentage = Math.round((solvedConcepts.size / totalConcepts) * 100);
 
     setComprehension(scorePercentage);

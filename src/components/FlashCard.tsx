@@ -71,6 +71,28 @@ const CARDS: CardData[] = [
     definition: '선형 변환 A를 가했을 때, 방향은 변하지 않고 오직 크기(배율)만 변하는 비영벡터(non-zero vector) v를 고유벡터(Eigenvector), 그 변하는 배율 λ를 고유값(Eigenvalue)이라고 합니다. 선형 공간의 본질적인 변화 축을 제공합니다.',
     urbanTitle: 'PCA 차원 축소 및 유동인구 이동 안정 상태 분석',
     urbanCase: '도시 내 미세먼지, 교통량 등 환경 지표들의 상관관계 행렬(Covariance)에서 최대 분산 방향을 찾기 위해 고유값 분해를 수행합니다. 또한, 행정구역 간 유동인구 전이 행렬의 정상 상태(Steady-state)를 나타내는 고유벡터(λ=1) 분석을 통해 장기적인 인구 분포의 평형 상태를 예측합니다.'
+  },
+  {
+    id: 'pca',
+    title: '주성분분석 (PCA)',
+    subtitle: '최대 분산 축을 찾는 차원 축소 기법',
+    mathNotation: '\\mathbf{y} = \\mathbf{W}^T \\mathbf{x}',
+    gradient: 'from-cyan-500/10 via-blue-500/10 to-indigo-500/5',
+    borderGlow: 'group-hover:border-cyan-500/40 border-slate-800',
+    definition: '주성분 분석(PCA)은 데이터의 차원을 축소하면서 정보(분산)를 최대한 보존하는 선형 기하학적 기법입니다. 데이터 공분산 행렬의 고유벡터들을 구하고, 고유값이 큰 주성분 축(PC1, PC2 등)으로 데이터를 정사영하여 차원을 요약합니다.',
+    urbanTitle: '도시 환경 지표의 차원 축소 및 다중공선성 해소',
+    urbanCase: '지역별 녹지율, 소음, 대기오염, 범죄율 등 수십 개의 도시 변수 간 상관관계를 분석할 때 다중공선성이 발생합니다. PCA를 통해 이 변수들을 분산이 극대화되는 2~3개의 핵심 주성분 변수로 압축하여 도시 기후 변화 영향도를 모형화합니다.'
+  },
+  {
+    id: 'markov',
+    title: '마르코프 체인 (Markov Chain)',
+    subtitle: '전이행렬 기반의 도시 공간 미래 상태 예측',
+    mathNotation: '\\mathbf{v}_{t+1} = \\mathbf{P} \\mathbf{v}_t',
+    gradient: 'from-emerald-500/10 via-green-500/10 to-teal-500/5',
+    borderGlow: 'group-hover:border-emerald-500/40 border-slate-800',
+    definition: '마르코프 체인은 과거 상태와 무관하게 현재 상태에 의해서만 미래 상태가 결정되는 확률 과정입니다. 각 공간 간의 이동 빈도를 확률화한 전이행렬 P를 상태 벡터에 계속 연산하면 시간이 흐름에 따라 정상 상태(Steady-state)에 수렴하게 됩니다.',
+    urbanTitle: '생활인구 이동 흐름 및 토지 이용 전이 시뮬레이션',
+    urbanCase: '시간대별 주거지, 상업지, 공업지 간 생활인구 전이 확률 P를 도출하여 최종적으로 수렴되는 지역별 유동인구 평형 분포를 도출합니다. 또는 미개발 녹지가 상업지나 주거지로 용도 변경되는 확률을 모델링하여 미래 도시 팽창을 예측합니다.'
   }
 ];
 
@@ -99,6 +121,14 @@ export default function FlashCard({ onQuizSubmit }: FlashCardProps = {}) {
 
   // 5. Eigenvalues/Eigenvectors Interactive State
   const [eigenK, setEigenK] = useState<number>(0.5);
+
+  // 6. PCA Interactive State
+  const [pcaAngle, setPcaAngle] = useState<number>(0);
+
+  // 7. Markov Chain Interactive State
+  const [markovP, setMarkovP] = useState<number>(0.5);
+  const [markovPop, setMarkovPop] = useState<[number, number, number]>([33.3, 33.3, 33.3]);
+  const [markovStep, setMarkovStep] = useState<number>(0);
 
   const getMatrixValues = () => {
     switch (matrixPreset) {
@@ -178,7 +208,11 @@ export default function FlashCard({ onQuizSubmit }: FlashCardProps = {}) {
                           ? '2-Dimension'
                           : card.id === 'matrix_mult'
                           ? 'Matrix Ops'
-                          : 'Spectral'}
+                          : card.id === 'eigen'
+                          ? 'Spectral'
+                          : card.id === 'pca'
+                          ? 'Dim Reduction'
+                          : 'Markov Chain'}
                       </span>
                       <h3 className="text-xl font-bold text-slate-100 mt-1">{card.title}</h3>
                     </div>
@@ -202,6 +236,8 @@ export default function FlashCard({ onQuizSubmit }: FlashCardProps = {}) {
                       {card.id === 'matrix' && `A = [ [${currentMatrix.a}, ${currentMatrix.b}], [${currentMatrix.c}, ${currentMatrix.d}] ]`}
                       {card.id === 'matrix_mult' && `C = A × B ∈ ℝ²ˣ²`}
                       {card.id === 'eigen' && `A v = λ v`}
+                      {card.id === 'pca' && `PC₁ = w₁x₁ + w₂x₂`}
+                      {card.id === 'markov' && `v(t+1) = P v(t)`}
                     </span>
                   </div>
 
@@ -692,6 +728,309 @@ export default function FlashCard({ onQuizSubmit }: FlashCardProps = {}) {
                         </div>
                       </div>
                     )}
+
+                    {/* PCA VISUALIZER */}
+                    {card.id === 'pca' && (
+                      <div className="flex flex-col items-center justify-center w-full px-1">
+                        {/* 2D Coordinate Scatter Plot */}
+                        <div className="relative w-36 h-36 border border-slate-800/80 rounded-xl bg-slate-950/80 flex items-center justify-center overflow-hidden">
+                          <div className="absolute inset-0 flex items-center"><div className="w-full h-[1px] bg-slate-850" /></div>
+                          <div className="absolute inset-0 flex justify-center"><div className="w-[1px] h-full bg-slate-850" /></div>
+                          
+                          <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+                            {(() => {
+                              // Zero-centered correlated points
+                              // Income (x) vs Population (y)
+                              const dataPoints = [
+                                { x: -2.0, y: -1.0 },
+                                { x: -1.5, y: -1.2 },
+                                { x: -1.0, y: -0.5 },
+                                { x: -0.5, y: -0.1 },
+                                { x: 0.0, y: 0.2 },
+                                { x: 0.5, y: 0.1 },
+                                { x: 1.0, y: 0.7 },
+                                { x: 1.5, y: 0.9 },
+                                { x: 2.0, y: 1.3 },
+                                { x: 0.2, y: -0.3 },
+                                { x: -0.8, y: 0.3 },
+                                { x: 1.2, y: 0.3 }
+                              ];
+                              
+                              const scale = 14;
+                              const rad = (pcaAngle * Math.PI) / 180;
+                              const ux = Math.cos(rad);
+                              const uy = Math.sin(rad);
+
+                              return (
+                                <>
+                                  {/* PC1 Projection Line */}
+                                  <line 
+                                    x1={50 - 45 * ux} 
+                                    y1={50 + 45 * uy} 
+                                    x2={50 + 45 * ux} 
+                                    y2={50 - 45 * uy} 
+                                    stroke="#06b6d4" 
+                                    strokeWidth="1.5" 
+                                    strokeDasharray="2"
+                                  />
+                                  
+                                  {/* Projections & Original points */}
+                                  {dataPoints.map((pt, idx) => {
+                                    const sx = 50 + pt.x * scale;
+                                    const sy = 50 - pt.y * scale;
+                                    
+                                    const d = pt.x * ux + pt.y * uy;
+                                    const px = 50 + (d * ux) * scale;
+                                    const py = 50 - (d * uy) * scale;
+                                    
+                                    return (
+                                      <g key={idx}>
+                                        {/* Projection dotted line */}
+                                        <line 
+                                          x1={sx} 
+                                          y1={sy} 
+                                          x2={px} 
+                                          y2={py} 
+                                          stroke="#334155" 
+                                          strokeWidth="0.8" 
+                                          strokeDasharray="1" 
+                                        />
+                                        {/* Projected point on PC1 (cyan glowing) */}
+                                        <circle cx={px} cy={py} r="2" className="fill-cyan-400 animate-pulse" />
+                                        {/* Original point (blue) */}
+                                        <circle cx={sx} cy={sy} r="2.5" className="fill-blue-500/80 stroke stroke-slate-950" strokeWidth="0.5" />
+                                      </g>
+                                    );
+                                  })}
+                                  <text x="75" y="16" fill="#06b6d4" fontSize="6" fontWeight="bold">PC1</text>
+                                </>
+                              );
+                            })()}
+                          </svg>
+                        </div>
+
+                        {/* Variance Gauge & Angle Info */}
+                        {(() => {
+                          const dataPoints = [
+                            { x: -2.0, y: -1.0 }, { x: -1.5, y: -1.2 }, { x: -1.0, y: -0.5 },
+                            { x: -0.5, y: -0.1 }, { x: 0.0, y: 0.2 }, { x: 0.5, y: 0.1 },
+                            { x: 1.0, y: 0.7 }, { x: 1.5, y: 0.9 }, { x: 2.0, y: 1.3 },
+                            { x: 0.2, y: -0.3 }, { x: -0.8, y: 0.3 }, { x: 1.2, y: 0.3 }
+                          ];
+                          const rad = (pcaAngle * Math.PI) / 180;
+                          const ux = Math.cos(rad);
+                          const uy = Math.sin(rad);
+                          let sumSq = 0;
+                          dataPoints.forEach(pt => {
+                            const d = pt.x * ux + pt.y * uy;
+                            sumSq += d * d;
+                          });
+                          const variance = sumSq / dataPoints.length;
+                          
+                          const maxPossibleVar = 2.5;
+                          const progress = Math.min((variance / maxPossibleVar) * 100, 100);
+
+                          return (
+                            <div className="w-full mt-1.5">
+                              <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800 text-[10px] mb-2">
+                                <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold mb-1 border-b border-slate-800 pb-0.5">
+                                  <span>PC1 회전 각도: {pcaAngle}°</span>
+                                  <span className="text-cyan-400 font-bold">사영 분산: {variance.toFixed(3)}</span>
+                                </div>
+                                
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <span className="text-[8.5px] text-slate-500 shrink-0 font-bold">정보량(분산)</span>
+                                  <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-850 relative">
+                                    <div 
+                                      style={{ width: `${progress}%` }} 
+                                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-300"
+                                    />
+                                    <div className="absolute left-[85%] top-0 bottom-0 w-[2px] bg-emerald-500/60" title="최대 분산 지점" />
+                                  </div>
+                                  <span className="text-[9px] font-mono text-cyan-400 font-bold w-7 text-right">{Math.round(progress)}%</span>
+                                </div>
+                                <div className="text-[7.5px] text-slate-500 text-center mt-0.5">
+                                  💡 약 30° 각도 부근에서 분산 수치(정보 보존량)가 최대화됩니다.
+                                </div>
+                              </div>
+
+                              <div 
+                                className="w-full"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex gap-2 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 items-center">
+                                  <span className="text-[9.5px] font-mono text-slate-400 font-bold shrink-0">축 각도 θ:</span>
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="180"
+                                    step="5"
+                                    value={pcaAngle}
+                                    onChange={(e) => setPcaAngle(parseInt(e.target.value))}
+                                    className="w-full accent-cyan-500 bg-slate-800 h-1 rounded-lg cursor-pointer"
+                                  />
+                                  <span className="text-xs font-mono text-cyan-400 w-8 text-right font-bold">{pcaAngle}°</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* MARKOV CHAIN VISUALIZER */}
+                    {card.id === 'markov' && (
+                      <div className="flex flex-col items-center justify-center w-full px-1">
+                        {/* Network Graph A, B, C */}
+                        <div className="relative w-36 h-36 border border-slate-800/80 rounded-xl bg-slate-950/80 flex items-center justify-center overflow-hidden">
+                          <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+                            <defs>
+                              <marker id="markov-arrow" viewBox="0 0 10 10" refX="16" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                                <path d="M 0 2 L 8 5 L 0 8 z" className="fill-slate-600" />
+                              </marker>
+                            </defs>
+                            
+                            {(() => {
+                              const nodeA = { x: 50, y: 24 };
+                              const nodeB = { x: 24, y: 72 };
+                              const nodeC = { x: 76, y: 72 };
+
+                              const pAB = 0.2 + 0.3 * markovP;
+                              const pCB = 0.1;
+
+                              const pBA = 0.3;
+                              const pCA = 0.1;
+
+                              const pAC = 0.2;
+                              const pBC = 0.2;
+
+                              const getRadius = (percentage: number) => {
+                                return 5 + (percentage / 100) * 11;
+                              };
+
+                              const rA = getRadius(markovPop[0]);
+                              const rB = getRadius(markovPop[1]);
+                              const rC = getRadius(markovPop[2]);
+
+                              return (
+                                <>
+                                  {/* Directed Paths (Flow arrows) */}
+                                  <path d="M 50 24 Q 32 44 24 72" fill="none" stroke="#475569" strokeWidth={0.5 + pBA * 4} markerEnd="url(#markov-arrow)" />
+                                  <path d="M 24 72 Q 42 52 50 24" fill="none" stroke="#475569" strokeWidth={0.5 + pAB * 4} markerEnd="url(#markov-arrow)" />
+                                  <path d="M 24 72 Q 50 82 76 72" fill="none" stroke="#475569" strokeWidth={0.5 + pCB * 4} markerEnd="url(#markov-arrow)" />
+                                  <path d="M 76 72 Q 50 62 24 72" fill="none" stroke="#475569" strokeWidth={0.5 + pBC * 4} markerEnd="url(#markov-arrow)" />
+                                  <path d="M 76 72 Q 58 44 50 24" fill="none" stroke="#475569" strokeWidth={0.5 + pAC * 4} markerEnd="url(#markov-arrow)" />
+                                  <path d="M 50 24 Q 68 52 76 72" fill="none" stroke="#475569" strokeWidth={0.5 + pCA * 4} markerEnd="url(#markov-arrow)" />
+
+                                  {/* Nodes */}
+                                  <circle cx={nodeA.x} cy={nodeA.y} r={rA} className="fill-indigo-600/30 stroke stroke-indigo-500 transition-all duration-500" strokeWidth="1.5" />
+                                  <text x={nodeA.x} y={nodeA.y + 1.5} fill="#e2e8f0" fontSize="4.5" fontWeight="bold" textAnchor="middle" className="pointer-events-none select-none">상업 A</text>
+                                  
+                                  <circle cx={nodeB.x} cy={nodeB.y} r={rB} className="fill-emerald-600/30 stroke stroke-emerald-500 transition-all duration-500" strokeWidth="1.5" />
+                                  <text x={nodeB.x} y={nodeB.y + 1.5} fill="#e2e8f0" fontSize="4.5" fontWeight="bold" textAnchor="middle" className="pointer-events-none select-none">주거 B</text>
+                                  
+                                  <circle cx={nodeC.x} cy={nodeC.y} r={rC} className="fill-amber-600/30 stroke stroke-amber-500 transition-all duration-500" strokeWidth="1.5" />
+                                  <text x={nodeC.x} y={nodeC.y + 1.5} fill="#e2e8f0" fontSize="4.5" fontWeight="bold" textAnchor="middle" className="pointer-events-none select-none">공업 C</text>
+                                </>
+                              );
+                            })()}
+                          </svg>
+                        </div>
+
+                        {/* Markov Simulation Panel */}
+                        <div className="w-full mt-1.5 bg-slate-900/80 p-2 rounded-xl border border-slate-800 text-[9.5px] mb-2 select-none">
+                          <div className="flex justify-between items-center text-[8.5px] text-slate-500 font-bold mb-1 border-b border-slate-800 pb-0.5">
+                            <span>시뮬레이션 시간: Step {markovStep}</span>
+                            <span className="text-emerald-400 font-bold">인구 비율 합: 100%</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-1 text-center font-mono text-[8px] py-1">
+                            <div className="bg-indigo-950/20 border border-indigo-900/20 rounded py-0.5">
+                              <p className="text-[7px] text-indigo-400">상업 A</p>
+                              <p className="text-[10px] font-bold text-slate-100">{markovPop[0].toFixed(1)}%</p>
+                            </div>
+                            <div className="bg-emerald-950/20 border border-emerald-900/20 rounded py-0.5">
+                              <p className="text-[7px] text-emerald-400">주거 B</p>
+                              <p className="text-[10px] font-bold text-slate-100">{markovPop[1].toFixed(1)}%</p>
+                            </div>
+                            <div className="bg-amber-950/20 border border-amber-900/20 rounded py-0.5">
+                              <p className="text-[7px] text-amber-400">공업 C</p>
+                              <p className="text-[10px] font-bold text-slate-100">{markovPop[2].toFixed(1)}%</p>
+                            </div>
+                          </div>
+                          
+                          {/* Controller Buttons */}
+                          <div className="grid grid-cols-2 gap-1.5 mt-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                const pAB = 0.2 + 0.3 * markovP;
+                                const pBB = 0.7 - 0.3 * markovP;
+                                const pCB = 0.1;
+                                
+                                const newA = 0.6 * markovPop[0] + pAB * markovPop[1] + 0.2 * markovPop[2];
+                                const newB = 0.3 * markovPop[0] + pBB * markovPop[1] + 0.2 * markovPop[2];
+                                const newC = 0.1 * markovPop[0] + pCB * markovPop[1] + 0.6 * markovPop[2];
+                                
+                                setMarkovPop([newA, newB, newC]);
+                                setMarkovStep(prev => prev + 1);
+                              }}
+                              className="py-1 text-[8.5px] font-bold rounded-lg border border-slate-800 bg-slate-950 text-indigo-400 hover:text-indigo-300 hover:bg-slate-900 cursor-pointer"
+                            >
+                              ⏳ 1단계 진행 (Step)
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                const pAB = 0.2 + 0.3 * markovP;
+                                const pBB = 0.7 - 0.3 * markovP;
+                                const pCB = 0.1;
+                                
+                                let current = [...markovPop];
+                                for (let i = 0; i < 30; i++) {
+                                  const newA = 0.6 * current[0] + pAB * current[1] + 0.2 * current[2];
+                                  const newB = 0.3 * current[0] + pBB * current[1] + 0.2 * current[2];
+                                  const newC = 0.1 * current[0] + pCB * current[1] + 0.6 * current[2];
+                                  current = [newA, newB, newC];
+                                }
+                                setMarkovPop([current[0], current[1], current[2]]);
+                                setMarkovStep(prev => prev + 30);
+                              }}
+                              className="py-1 text-[8.5px] font-bold rounded-lg border border-emerald-900/30 bg-emerald-950/20 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30 cursor-pointer"
+                            >
+                              ⚡ 안정 수렴 (Steady)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Transition probability slider */}
+                        <div 
+                          className="w-full"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex gap-2 bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-slate-800 items-center">
+                            <span className="text-[8.5px] font-mono text-slate-400 font-bold shrink-0">주거지 유출 p:</span>
+                            <input
+                              type="range"
+                              min="0.0"
+                              max="1.0"
+                              step="0.1"
+                              value={markovP}
+                              onChange={(e) => {
+                                setMarkovP(parseFloat(e.target.value));
+                                setMarkovPop([33.3, 33.3, 33.3]);
+                                setMarkovStep(0);
+                              }}
+                              className="w-full accent-emerald-500 bg-slate-800 h-1 rounded-lg cursor-pointer"
+                            />
+                            <span className="text-xs font-mono text-emerald-400 w-8 text-right font-bold">{markovP.toFixed(1)}</span>
+                          </div>
+                          
+                          <div className="text-center font-mono text-[7.5px] text-slate-500 mt-0.5">
+                            P(주거→상업) = {(0.2 + 0.3 * markovP).toFixed(2)} | P(주거→주거) = {(0.7 - 0.3 * markovP).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -820,6 +1159,28 @@ const QUIZ_QUESTIONS: Record<string, QuizQuestion> = {
     ],
     answerIndex: 0,
     explanation: "고유벡터는 선형 변환 A를 가해도 방향은 변하지 않고(동일 선상에 유지), 오직 크기만 고유값 λ배만큼 스케일링되는 특별한 벡터입니다."
+  },
+  pca: {
+    question: "주성분 분석(PCA)에서 데이터의 공분산 행렬을 고유값 분해했을 때, 가장 큰 고유값에 대응하는 고유벡터의 기하학적 의미는 무엇인가요?",
+    options: [
+      "데이터의 분산(정보량)이 최소가 되는 축 방향이다.",
+      "데이터의 분산(정보량)이 최대가 되는 제1주성분(PC1) 축 방향이다.",
+      "모든 데이터 포인트를 원점으로 수렴시키는 이동 경로이다.",
+      "데이터 간의 거리를 모두 동일하게 만드는 선형 차원이다."
+    ],
+    answerIndex: 1,
+    explanation: "공분산 행렬의 가장 큰 고유값에 해당하는 고유벡터는 데이터의 분산(흩어짐 정도)이 가장 큰 방향을 나타내는 제1주성분(PC1) 축입니다. 이 축에 데이터를 사영해야 원래 정보의 손실이 가장 적습니다."
+  },
+  markov: {
+    question: "마르코프 전이 행렬 P와 상태 벡터 v에 대해, 충분한 단계(Step) 진행 후 정상 상태(Steady State)에 도달해 Pv = v가 성립할 때, 상태 v는 선형대수학적으로 어떤 의미를 갖나요?",
+    options: [
+      "전이 행렬 P의 고유값 λ = 1에 대응하는 고유벡터이다.",
+      "전이 행렬 P의 고유값 λ = 0에 대응하는 고유벡터이다.",
+      "전이 행렬 P의 모든 성분의 대각합(Trace)이다.",
+      "전이 행렬 P의 모든 열의 공분산 벡터이다."
+    ],
+    answerIndex: 0,
+    explanation: "안정 상태 식 Pv = v는 Pv = 1v 로 해석할 수 있으므로, 고유값 λ = 1에 해당하는 전이 행렬 P의 고유벡터를 구하는 문제와 정확히 동일합니다."
   }
 };
 
