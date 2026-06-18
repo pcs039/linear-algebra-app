@@ -48,6 +48,28 @@ const CARDS: CardData[] = [
     definition: '가로(행)와 세로(열)로 배치된 수의 2차원 격자입니다. 선형대수학적 관점에서 행렬은 고정된 숫자의 표가 아니라, 하나의 벡터 공간을 다른 벡터 공간으로 매핑(회전, 확대/축소, 전단 등)하는 "선형 변환(Linear Transformation)" 함수 자체를 나타냅니다.',
     urbanTitle: '도시 공간 가중치 및 인접성 행렬',
     urbanCase: '도시 도로망 네트워크에서 도로 교차점 간의 연결 관계(Adjacency)나, 공간 분석법(Spatial Autocorrelation)에서 행정구역 간 상호 영향력을 정의하는 공간 가중치 행렬(W) 등으로 사용되어 물리적 관계를 수학화합니다.'
+  },
+  {
+    id: 'matrix_mult',
+    title: '행렬곱 (Matrix Multiplication)',
+    subtitle: '행과 열의 상호작용을 통한 새로운 차원 결합',
+    mathNotation: '\\mathbf{C} = \\mathbf{A} \\mathbf{B} \\in \\mathbb{R}^{2 \\times 2}',
+    gradient: 'from-blue-500/10 via-indigo-500/10 to-violet-500/5',
+    borderGlow: 'group-hover:border-blue-500/40 border-slate-800',
+    definition: '두 행렬의 곱셈은 왼쪽 행렬의 행 벡터와 오른쪽 행렬의 열 벡터 간의 내적(Dot Product)을 통해 새로운 행렬을 구성하는 연산입니다. 이는 연쇄적인 선형 변환이나 시스템의 연속 동작을 하나의 결합된 변환으로 표현하는 핵심 도구입니다.',
+    urbanTitle: '인접 행렬 거듭제곱을 통한 도로망 연결성 분석',
+    urbanCase: '도시 도로망에서 교차점들의 연결 여부를 나타낸 인접 행렬(A)을 거듭제곱(A², A³...)하면, 각 원소 c_ij는 교차점 i에서 j로 가는 특정 홉(hop) 수 내의 가능한 경로의 수가 됩니다. 이를 통해 대중교통 네트워크의 도달 가능성과 허브 지역의 연결성 강도를 분석할 수 있습니다.'
+  },
+  {
+    id: 'eigen',
+    title: '고유값/고유벡터 (Eigenvalues/vectors)',
+    subtitle: '변환 속에서도 방향을 유지하는 선형대수의 축',
+    mathNotation: '\\mathbf{A}\\mathbf{v} = \\lambda \\mathbf{v}',
+    gradient: 'from-fuchsia-500/10 via-pink-500/10 to-rose-500/5',
+    borderGlow: 'group-hover:border-fuchsia-500/40 border-slate-800',
+    definition: '선형 변환 A를 가했을 때, 방향은 변하지 않고 오직 크기(배율)만 변하는 비영벡터(non-zero vector) v를 고유벡터(Eigenvector), 그 변하는 배율 λ를 고유값(Eigenvalue)이라고 합니다. 선형 공간의 본질적인 변화 축을 제공합니다.',
+    urbanTitle: 'PCA 차원 축소 및 유동인구 이동 안정 상태 분석',
+    urbanCase: '도시 내 미세먼지, 교통량 등 환경 지표들의 상관관계 행렬(Covariance)에서 최대 분산 방향을 찾기 위해 고유값 분해를 수행합니다. 또한, 행정구역 간 유동인구 전이 행렬의 정상 상태(Steady-state)를 나타내는 고유벡터(λ=1) 분석을 통해 장기적인 인구 분포의 평형 상태를 예측합니다.'
   }
 ];
 
@@ -64,6 +86,14 @@ export default function FlashCard() {
 
   // 3. Matrix Interactive State
   const [matrixPreset, setMatrixPreset] = useState<'identity' | 'scale' | 'shear' | 'rotate'>('identity');
+
+  // 4. Matrix Multiplication Interactive State
+  const [matrixMultA12, setMatrixMultA12] = useState<number>(3);
+  const [matrixMultB11, setMatrixMultB11] = useState<number>(1);
+  const [selectedCell, setSelectedCell] = useState<'c11' | 'c12' | 'c21' | 'c22'>('c11');
+
+  // 5. Eigenvalues/Eigenvectors Interactive State
+  const [eigenK, setEigenK] = useState<number>(0.5);
 
   const getMatrixValues = () => {
     switch (matrixPreset) {
@@ -88,12 +118,12 @@ export default function FlashCard() {
   return (
     <div className="w-full flex flex-col h-full">
       {/* Category selector navigation */}
-      <div className="flex bg-slate-950/60 p-1 rounded-xl gap-1 mb-6 border border-slate-800/80 mx-4">
+      <div className="flex overflow-x-auto whitespace-nowrap scrollbar-none bg-slate-950/60 p-1 rounded-xl gap-1 mb-6 border border-slate-800/80 mx-4">
         {CARDS.map(card => (
           <button
             key={card.id}
             onClick={() => setActiveCard(card.id)}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${
+            className={`flex-1 shrink-0 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${
               activeCard === card.id
                 ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-950/40'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -135,7 +165,15 @@ export default function FlashCard() {
                   <div className="flex justify-between items-start z-10">
                     <div>
                       <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-400 bg-indigo-950/40 px-2 py-0.5 rounded-full border border-indigo-800/30">
-                        {card.id === 'scalar' ? '0-Dimension' : card.id === 'vector' ? '1-Dimension' : '2-Dimension'}
+                        {card.id === 'scalar'
+                          ? '0-Dimension'
+                          : card.id === 'vector'
+                          ? '1-Dimension'
+                          : card.id === 'matrix'
+                          ? '2-Dimension'
+                          : card.id === 'matrix_mult'
+                          ? 'Matrix Ops'
+                          : 'Spectral'}
                       </span>
                       <h3 className="text-xl font-bold text-slate-100 mt-1">{card.title}</h3>
                     </div>
@@ -157,6 +195,8 @@ export default function FlashCard() {
                       {card.id === 'scalar' && `c = ${scalarK.toFixed(1)} ∈ ℝ`}
                       {card.id === 'vector' && `v = [ ${vecX.toFixed(0)}, ${vecY.toFixed(0)} ]ᵀ`}
                       {card.id === 'matrix' && `A = [ [${currentMatrix.a}, ${currentMatrix.b}], [${currentMatrix.c}, ${currentMatrix.d}] ]`}
+                      {card.id === 'matrix_mult' && `C = A × B ∈ ℝ²ˣ²`}
+                      {card.id === 'eigen' && `A v = λ v`}
                     </span>
                   </div>
 
@@ -365,9 +405,290 @@ export default function FlashCard() {
                         </div>
                       </div>
                     )}
+
+                    {/* MATRIX MULTIPLICATION VISUALIZER */}
+                    {card.id === 'matrix_mult' && (
+                      <div className="flex flex-col items-center justify-center w-full px-1">
+                        {/* Matrix Formula Visual */}
+                        <div className="flex items-center gap-1 text-[11px] mb-3 select-none">
+                          {/* Matrix A */}
+                          <div className="relative border-l-2 border-r-2 border-slate-400 px-1 py-1 flex flex-col justify-center bg-slate-900/60 rounded-sm">
+                            <div className="flex gap-2">
+                              <span className={`w-6 text-center font-mono transition-colors ${['c11', 'c12'].includes(selectedCell) ? 'text-amber-400 font-bold' : 'text-slate-300'}`}>2</span>
+                              <span className={`w-6 text-center font-mono transition-colors ${['c11', 'c12'].includes(selectedCell) ? 'text-amber-400 font-bold' : 'text-slate-300'}`}>{matrixMultA12}</span>
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                              <span className={`w-6 text-center font-mono transition-colors ${['c21', 'c22'].includes(selectedCell) ? 'text-amber-400 font-bold' : 'text-slate-300'}`}>1</span>
+                              <span className={`w-6 text-center font-mono transition-colors ${['c21', 'c22'].includes(selectedCell) ? 'text-amber-400 font-bold' : 'text-slate-300'}`}>-2</span>
+                            </div>
+                          </div>
+
+                          <span className="text-slate-400 font-bold mx-0.5">×</span>
+
+                          {/* Matrix B */}
+                          <div className="relative border-l-2 border-r-2 border-slate-400 px-1 py-1 flex flex-col justify-center bg-slate-900/60 rounded-sm">
+                            <div className="flex gap-2">
+                              <span className={`w-6 text-center font-mono transition-colors ${['c11', 'c21'].includes(selectedCell) ? 'text-emerald-400 font-bold' : 'text-slate-300'}`}>{matrixMultB11}</span>
+                              <span className={`w-6 text-center font-mono transition-colors ${['c12', 'c22'].includes(selectedCell) ? 'text-emerald-400 font-bold' : 'text-slate-300'}`}>2</span>
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                              <span className={`w-6 text-center font-mono transition-colors ${['c11', 'c21'].includes(selectedCell) ? 'text-emerald-400 font-bold' : 'text-slate-300'}`}>3</span>
+                              <span className={`w-6 text-center font-mono transition-colors ${['c12', 'c22'].includes(selectedCell) ? 'text-emerald-400 font-bold' : 'text-slate-300'}`}>4</span>
+                            </div>
+                          </div>
+
+                          <span className="text-slate-400 font-bold mx-0.5">=</span>
+
+                          {/* Matrix C */}
+                          <div className="relative border-l-2 border-r-2 border-slate-400 px-1 py-1 flex flex-col justify-center bg-slate-900/60 rounded-sm">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedCell('c11'); }}
+                                className={`w-6 h-4 flex items-center justify-center font-mono text-[10px] rounded transition-all ${selectedCell === 'c11' ? 'bg-violet-600 border border-violet-400 text-white font-bold animate-pulse' : 'bg-slate-950/40 text-slate-400 hover:text-slate-200'}`}
+                              >
+                                {(2 * matrixMultB11 + matrixMultA12 * 3)}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedCell('c12'); }}
+                                className={`w-6 h-4 flex items-center justify-center font-mono text-[10px] rounded transition-all ${selectedCell === 'c12' ? 'bg-violet-600 border border-violet-400 text-white font-bold animate-pulse' : 'bg-slate-950/40 text-slate-400 hover:text-slate-200'}`}
+                              >
+                                {(4 + 4 * matrixMultA12)}
+                              </button>
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedCell('c21'); }}
+                                className={`w-6 h-4 flex items-center justify-center font-mono text-[10px] rounded transition-all ${selectedCell === 'c21' ? 'bg-violet-600 border border-violet-400 text-white font-bold animate-pulse' : 'bg-slate-950/40 text-slate-400 hover:text-slate-200'}`}
+                              >
+                                {(matrixMultB11 - 6)}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedCell('c22'); }}
+                                className={`w-6 h-4 flex items-center justify-center font-mono text-[10px] rounded transition-all ${selectedCell === 'c22' ? 'bg-violet-600 border border-violet-400 text-white font-bold animate-pulse' : 'bg-slate-950/40 text-slate-400 hover:text-slate-200'}`}
+                              >
+                                -6
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Cell Select Grid & Calculation Display */}
+                        <div className="w-full bg-slate-900/80 p-2 border border-slate-800 rounded-xl text-[11px] mb-2.5">
+                          <div className="flex justify-between items-center mb-1 border-b border-slate-800 pb-1">
+                            <span className="text-[9.5px] text-slate-500 font-bold">계산 원소 선택:</span>
+                            <div className="flex gap-0.5">
+                              {(['c11', 'c12', 'c21', 'c22'] as const).map((cell) => (
+                                <button
+                                  key={cell}
+                                  onClick={(e) => { e.stopPropagation(); setSelectedCell(cell); }}
+                                  className={`px-1 py-0.5 text-[8.5px] rounded font-mono font-bold uppercase ${selectedCell === cell ? 'bg-violet-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                                >
+                                  {cell}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Mathematical Dot Product Detail */}
+                          <div className="space-y-0.5 text-slate-300 font-mono text-[9.5px] leading-relaxed">
+                            {selectedCell === 'c11' && (
+                              <>
+                                <div className="text-amber-400">행 A₁: [2, {matrixMultA12}] · 열 B₁: [{matrixMultB11}, 3]ᵀ</div>
+                                <div className="text-slate-400">c₁₁ = (2 × {matrixMultB11}) + ({matrixMultA12} × 3)</div>
+                                <div className="text-violet-400 font-bold">c₁₁ = {2 * matrixMultB11} + {matrixMultA12 * 3} = {2 * matrixMultB11 + matrixMultA12 * 3}</div>
+                              </>
+                            )}
+                            {selectedCell === 'c12' && (
+                              <>
+                                <div className="text-amber-400">행 A₁: [2, {matrixMultA12}] · 열 B₂: [2, 4]ᵀ</div>
+                                <div className="text-slate-400">c₁₂ = (2 × 2) + ({matrixMultA12} × 4)</div>
+                                <div className="text-violet-400 font-bold">c₁₂ = 4 + {matrixMultA12 * 4} = {4 + matrixMultA12 * 4}</div>
+                              </>
+                            )}
+                            {selectedCell === 'c21' && (
+                              <>
+                                <div className="text-amber-400">행 A₂: [1, -2] · 열 B₁: [{matrixMultB11}, 3]ᵀ</div>
+                                <div className="text-slate-400">c₂₁ = (1 × {matrixMultB11}) + (-2 × 3)</div>
+                                <div className="text-violet-400 font-bold">c₂₁ = {matrixMultB11} - 6 = {matrixMultB11 - 6}</div>
+                              </>
+                            )}
+                            {selectedCell === 'c22' && (
+                              <>
+                                <div className="text-amber-400">행 A₂: [1, -2] · 열 B₂: [2, 4]ᵀ</div>
+                                <div className="text-slate-400">c₂₂ = (1 × 2) + (-2 × 4)</div>
+                                <div className="text-violet-400 font-bold">c₂₂ = 2 - 8 = -6</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Interactive Sliders for elements */}
+                        <div 
+                          className="w-full space-y-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex gap-2 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 items-center">
+                            <span className="text-[9.5px] font-mono text-amber-400 font-bold w-12 shrink-0">변수 a₁₂</span>
+                            <input
+                              type="range"
+                              min="-3"
+                              max="5"
+                              step="1"
+                              value={matrixMultA12}
+                              onChange={(e) => setMatrixMultA12(parseInt(e.target.value))}
+                              className="w-full accent-amber-500 bg-slate-800 h-1 rounded-lg cursor-pointer"
+                            />
+                            <span className="text-xs font-mono text-amber-400 w-4 text-right">{matrixMultA12}</span>
+                          </div>
+                          <div className="flex gap-2 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 items-center">
+                            <span className="text-[9.5px] font-mono text-emerald-400 font-bold w-12 shrink-0">변수 b₁₁</span>
+                            <input
+                              type="range"
+                              min="-3"
+                              max="5"
+                              step="1"
+                              value={matrixMultB11}
+                              onChange={(e) => setMatrixMultB11(parseInt(e.target.value))}
+                              className="w-full accent-emerald-500 bg-slate-800 h-1 rounded-lg cursor-pointer"
+                            />
+                            <span className="text-xs font-mono text-emerald-400 w-4 text-right">{matrixMultB11}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* EIGENVALUES / EIGENVECTORS VISUALIZER */}
+                    {card.id === 'eigen' && (
+                      <div className="flex flex-col items-center justify-center w-full px-1">
+                        {/* 2D Grid Plot SVG */}
+                        <div className="relative w-36 h-36 border border-slate-800/80 rounded-xl bg-slate-950/80 flex items-center justify-center overflow-hidden">
+                          {/* Coordinate axes */}
+                          <div className="absolute inset-0 flex items-center"><div className="w-full h-[1px] bg-slate-800" /></div>
+                          <div className="absolute inset-0 flex justify-center"><div className="w-[1px] h-full bg-slate-800" /></div>
+                          
+                          {/* Span line for Eigenvector y = x */}
+                          <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+                            {/* Dotted eigenspace span line */}
+                            <line x1="8" y1="92" x2="92" y2="8" stroke="#f43f5e" strokeWidth="1" strokeDasharray="3" strokeOpacity="0.4" />
+                            
+                            <defs>
+                              <marker id="eigen-arrow-v" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                <path d="M 0 2 L 8 5 L 0 8 z" className="fill-emerald-400" />
+                              </marker>
+                              <marker id="eigen-arrow-av" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                <path d="M 0 2 L 8 5 L 0 8 z" className="fill-amber-400" />
+                              </marker>
+                              <marker id="eigen-arrow-x" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                <path d="M 0 2 L 8 5 L 0 8 z" className="fill-blue-400" />
+                              </marker>
+                              <marker id="eigen-arrow-ax" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                <path d="M 0 2 L 8 5 L 0 8 z" className="fill-fuchsia-400" />
+                              </marker>
+                            </defs>
+
+                            {(() => {
+                              // Scaling factor mapping: x_svg = 50 + x * 14, y_svg = 50 - y * 14
+                              const scale = 14;
+                              const toSVG = (cx: number, cy: number) => ({
+                                x: 50 + cx * scale,
+                                y: 50 - cy * scale
+                              });
+
+                              // Eigenvector v = [1.5, 1.5]
+                              const endV = toSVG(1.5, 1.5);
+                              
+                              // Transformed Eigenvector Av = (1.5 + k) * [1.5, 1.5]
+                              const lambda = 1.5 + eigenK;
+                              const endAV = toSVG(1.5 * lambda, 1.5 * lambda);
+
+                              // Normal vector x = [2.0, 0.5]
+                              const endX = toSVG(2.0, 0.5);
+
+                              // Transformed normal vector Ax = [3.0 + 0.5k, 2.0k + 0.75]
+                              const endAX = toSVG(3.0 + 0.5 * eigenK, 2.0 * eigenK + 0.75);
+
+                              return (
+                                <>
+                                  {/* Transformed Non-Eigenvector Ax (Fuchsia) */}
+                                  <line x1="50" y1="50" x2={endAX.x} y2={endAX.y} stroke="#e879f9" strokeWidth="2" markerEnd="url(#eigen-arrow-ax)" className="transition-all duration-300" />
+                                  
+                                  {/* Non-Eigenvector x (Blue) */}
+                                  <line x1="50" y1="50" x2={endX.x} y2={endX.y} stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="1.5" markerEnd="url(#eigen-arrow-x)" />
+
+                                  {/* Transformed Eigenvector Av (Amber) */}
+                                  <line x1="50" y1="50" x2={endAV.x} y2={endAV.y} stroke="#fbbf24" strokeWidth="2.5" markerEnd="url(#eigen-arrow-av)" className="transition-all duration-300" />
+                                  
+                                  {/* Eigenvector v (Emerald) */}
+                                  <line x1="50" y1="50" x2={endV.x} y2={endV.y} stroke="#34d399" strokeWidth="1.5" strokeDasharray="1.5" markerEnd="url(#eigen-arrow-v)" />
+
+                                  {/* Labels */}
+                                  <text x={endV.x - 3} y={endV.y + 12} fill="#34d399" fontSize="7" fontWeight="bold">v</text>
+                                  <text x={endAV.x + 3} y={endAV.y - 4} fill="#fbbf24" fontSize="7" fontWeight="bold">Av</text>
+                                  <text x={endX.x + 3} y={endX.y + 7} fill="#60a5fa" fontSize="7" fontWeight="bold">x</text>
+                                  <text x={endAX.x + 4} y={endAX.y - 2} fill="#e879f9" fontSize="7" fontWeight="bold">Ax</text>
+                                </>
+                              );
+                            })()}
+                          </svg>
+                        </div>
+
+                        {/* Formula Av = lambda v mapping */}
+                        <div className="w-full bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 text-[10px] mt-1.5 mb-1.5">
+                          <div className="text-center font-bold text-[9px] text-slate-500 mb-1 border-b border-slate-800 pb-0.5 uppercase tracking-wider">
+                            고유벡터 성질: Av = λv
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5 text-center text-slate-300 font-mono text-[8.5px]">
+                            {/* Eigenvector mapping */}
+                            <div className="border-r border-slate-800 pr-1">
+                              <span className="text-emerald-400 font-bold">고유벡터 v</span>
+                              <div className="mt-0.5 flex items-center justify-center gap-0.5 text-slate-400">
+                                <span>Av =</span>
+                                <span className="text-amber-400 font-bold">{(1.5 + eigenK).toFixed(1)}</span>
+                                <span>v</span>
+                              </div>
+                              <div className="text-[7.5px] text-slate-500">(방향 유지, 길이 변형)</div>
+                            </div>
+                            
+                            {/* General vector mapping */}
+                            <div className="pl-1">
+                              <span className="text-blue-400 font-bold">일반벡터 x</span>
+                              <div className="mt-0.5 flex items-center justify-center gap-0.5 text-slate-400">
+                                <span>Ax ≠</span>
+                                <span className="text-fuchsia-400">λ</span>
+                                <span>x</span>
+                              </div>
+                              <div className="text-[7.5px] text-slate-500">(방향 및 길이 모두 변형)</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Matrix Slider for Parameter k */}
+                        <div 
+                          className="w-full"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex gap-2 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 items-center">
+                            <span className="text-[9.5px] font-mono text-slate-400 font-bold shrink-0">행렬 원소 k:</span>
+                            <input
+                              type="range"
+                              min="-1.0"
+                              max="1.0"
+                              step="0.1"
+                              value={eigenK}
+                              onChange={(e) => setEigenK(parseFloat(e.target.value))}
+                              className="w-full accent-fuchsia-500 bg-slate-800 h-1 rounded-lg cursor-pointer"
+                            />
+                            <span className="text-xs font-mono text-fuchsia-400 w-8 text-right font-bold">{eigenK.toFixed(1)}</span>
+                          </div>
+                          
+                          <div className="text-center font-mono text-[8.5px] text-slate-500 mt-0.5">
+                            A = [ [1.5, {eigenK.toFixed(1)}], [{eigenK.toFixed(1)}, 1.5] ]
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Footer Action Hint */}
                   <div className="flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900 pt-3 z-10">
                     <span className="flex items-center gap-1">
                       <Database className="w-3 h-3 text-indigo-500/80" />
