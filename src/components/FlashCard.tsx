@@ -191,10 +191,12 @@ export default function FlashCard({ onQuizSubmit }: FlashCardProps = {}) {
               >
                 {/* ==================== FRONT FACE ==================== */}
                 <div
-                  className={`absolute inset-0 backface-hidden rounded-3xl bg-gradient-to-br ${card.gradient} bg-slate-950 p-6 flex flex-col justify-between overflow-hidden`}
+                  className={`absolute inset-0 backface-hidden rotate-y-0-front rounded-3xl bg-gradient-to-br ${card.gradient} bg-slate-950 p-6 flex flex-col justify-between`}
                 >
-                  {/* Card Glow Border Background */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                  {/* Card Glow Border Background with nested overflow control */}
+                  <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
+                  </div>
 
                   {/* Header */}
                   <div className="flex justify-between items-start z-10">
@@ -1047,54 +1049,56 @@ export default function FlashCard({ onQuizSubmit }: FlashCardProps = {}) {
 
                 {/* ==================== BACK FACE ==================== */}
                 <div
-                  className="absolute inset-0 backface-hidden rotate-y-180 rounded-3xl border border-slate-800 bg-slate-950 p-6 flex flex-col justify-between overflow-y-auto"
+                  className="absolute inset-0 backface-hidden rotate-y-180-back rounded-3xl border border-slate-800 bg-slate-950 p-5 flex flex-col justify-between"
                 >
-                  {/* Top Header */}
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-800/30">
-                        Concept Details
-                      </span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleFlip(card.id);
-                        }}
-                        className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
-                        title="카드로 돌아가기"
-                      >
-                        <RotateCw className="w-4 h-4" />
-                      </button>
+                  <div className="flex-1 overflow-y-auto pr-1 scrollbar-none flex flex-col">
+                    {/* Top Header */}
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-800/30">
+                          Concept Details
+                        </span>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFlip(card.id);
+                          }}
+                          className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                          title="카드로 돌아가기"
+                        >
+                          <RotateCw className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <h3 className="text-xl font-bold text-slate-100 mt-2">{card.title} 정의</h3>
+                      <p className="text-xs text-slate-350 leading-relaxed mt-2.5 bg-slate-900/50 p-3 rounded-xl border border-slate-850">
+                        {card.definition}
+                      </p>
                     </div>
 
-                    <h3 className="text-xl font-bold text-slate-100 mt-2">{card.title} 정의</h3>
-                    <p className="text-xs text-slate-350 leading-relaxed mt-2.5 bg-slate-900/50 p-3 rounded-xl border border-slate-850">
-                      {card.definition}
-                    </p>
-                  </div>
+                    {/* Space Spacer */}
+                    <div className="my-3 border-t border-slate-900 shrink-0" />
 
-                  {/* Space Spacer */}
-                  <div className="my-3 border-t border-slate-900" />
-
-                  {/* Urban Big Data Application Case */}
-                  <div>
-                    <h4 className="text-xs font-bold text-indigo-400 flex items-center gap-1.5 mb-2">
-                      <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-                      도시 빅데이터 연구 활용 사례
-                    </h4>
-                    <div className="bg-indigo-950/10 border border-indigo-900/30 p-3 rounded-xl">
-                      <h5 className="text-[11px] font-bold text-indigo-300 mb-1">{card.urbanTitle}</h5>
-                      <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                        {card.urbanCase}
-                      </p>
+                    {/* Urban Big Data Application Case */}
+                    <div className="mb-2">
+                      <h4 className="text-xs font-bold text-indigo-400 flex items-center gap-1.5 mb-2">
+                        <MapPin className="w-3.5 h-3.5 text-indigo-400" />
+                        도시 빅데이터 연구 활용 사례
+                      </h4>
+                      <div className="bg-indigo-950/10 border border-indigo-900/30 p-3 rounded-xl">
+                        <h5 className="text-[11px] font-bold text-indigo-300 mb-1">{card.urbanTitle}</h5>
+                        <p className="text-[10.5px] text-slate-400 leading-relaxed">
+                          {card.urbanCase}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Tap to return helper */}
-                  <div className="text-center text-[10px] text-slate-500 pt-3 border-t border-slate-900 mt-3">
+                  <div className="text-center text-[10px] text-slate-500 pt-2.5 border-t border-slate-900 mt-2 shrink-0">
                     화면 아무 곳이나 누르면 앞으로 돌아갑니다
+                  </div>
                 </div>
-              </div>
             </div>
             <QuizSection key={card.id} conceptId={card.id} onSubmitted={onQuizSubmit} />
           </div>
